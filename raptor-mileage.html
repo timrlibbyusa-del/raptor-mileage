@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d0f">
+<title>Raptor Mileage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0d0d0f; --surface:#141417; --surface2:#1a1a1f; --border:#25252d;
+    --green:#3ddc84; --green-dim:#1e3d2a;
+    --red:#ff6b6b;   --red-dim:#3d1e1e;
+    --amber:#f5a623; --amber-dim:#3d2e10;
+    --text:#e8e8ec;  --muted:#55556a;
+    --font-head:'Rajdhani',sans-serif; --font-mono:'DM Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-head);overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100dvh}
+
+  /* HEADER */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px 10px;flex-shrink:0}
+  .hdr-sub{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
+  .hdr-title{font-size:22px;font-weight:700;letter-spacing:1px}
+  .hdr-loc{font-size:11px;color:var(--muted);margin-top:1px}
+
+  /* TABS */
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+  .tab{flex:1;padding:11px 0;border:none;background:transparent;cursor:pointer;font-family:var(--font-head);font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  .tab.active{color:var(--green);border-bottom-color:var(--green)}
+
+  .scroll{flex:1;overflow-y:auto;padding:14px 14px 32px;-webkit-overflow-scrolling:touch}
+
+  /* CARD */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+  .card-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:14px}
+
+  /* MODE TOGGLE */
+  .mode-toggle{display:flex;gap:6px;margin-bottom:14px}
+  .mode-btn{flex:1;padding:9px 4px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:var(--font-head);font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;transition:all .15s}
+  .mode-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+
+  /* FIELDS */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+  label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  input,select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:var(--text);font-size:15px;font-family:var(--font-mono);outline:none;width:100%;appearance:none;-webkit-appearance:none;transition:border-color .15s}
+  input:focus,select:focus{border-color:var(--green)}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2355556a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+
+  .preview-row{text-align:center;font-size:13px;font-weight:600;font-family:var(--font-mono);padding:6px 0;border-radius:6px;margin-bottom:10px}
+  .preview-row.valid{color:var(--green);background:var(--green-dim)}
+  .preview-row.invalid{color:var(--red);background:var(--red-dim)}
+
+  .btn-save{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-head);font-size:16px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;transition:all .15s}
+  .btn-save.ready{background:var(--green);color:var(--bg)}
+  .btn-save.ready:active{transform:scale(.97)}
+  .btn-save.disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
+  .btn-save.saved{background:var(--green-dim);color:var(--green)}
+
+  /* TRIP LIST */
+  .month-label{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin:4px 2px 8px;display:flex;justify-content:space-between;align-items:center}
+  .month-label.current{color:var(--green)}
+  .trip-item{background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--border);display:flex;align-items:center;gap:10px;animation:fadeIn .2s ease}
+  .trip-item.business{border-left-color:var(--green)}
+  .trip-item.personal{border-left-color:var(--border)}
+  .trip-item.commute{border-left-color:#4ecfa0}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .trip-info{flex:1;min-width:0}
+  .trip-purpose{font-size:14px;font-weight:600;letter-spacing:.5px}
+  .trip-purpose.business{color:var(--green)}
+  .trip-purpose.personal{color:var(--muted)}
+  .trip-purpose.commute{color:#4ecfa0}
+  .trip-meta{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trip-miles{font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--text);flex-shrink:0}
+  .btn-del{background:var(--surface2);border:none;border-radius:7px;padding:7px 9px;color:var(--muted);font-size:14px;cursor:pointer;flex-shrink:0}
+  .btn-del.confirm{background:var(--red-dim);color:var(--red)}
+
+  /* SUMMARY */
+  .irs-banner{border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:600;display:flex;align-items:flex-start;gap:10px;line-height:1.4}
+  .irs-banner.ok{background:var(--green-dim);border:1px solid #2a4d37;color:var(--green)}
+  .irs-banner.warn{background:var(--amber-dim);border:1px solid #6b4a10;color:var(--amber)}
+  .irs-banner.danger{background:var(--red-dim);border:1px solid #6b2a2a;color:var(--red)}
+  .irs-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+
+  .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .sum-chip{border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;border:1px solid transparent}
+  .sum-chip.business{background:var(--green-dim);border-color:#2a4d37}
+  .sum-chip.commute{background:#1a3530;border-color:#2a4d40}
+  .sum-chip.personal{background:var(--surface2);border-color:var(--border)}
+  .sum-chip.total{background:var(--surface2);border-color:var(--border);grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
+  .sum-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .sum-chip.business .sum-label{color:var(--green)}
+  .sum-chip.commute  .sum-label{color:#4ecfa0}
+  .sum-chip.personal .sum-label{color:var(--muted)}
+  .sum-chip.total    .sum-label{color:var(--muted)}
+  .sum-miles{font-size:22px;font-weight:700;font-family:var(--font-mono)}
+  .sum-chip.business .sum-miles{color:var(--green)}
+  .sum-chip.commute  .sum-miles{color:#4ecfa0}
+  .sum-chip.personal .sum-miles{color:var(--text)}
+  .sum-chip.total    .sum-miles{color:var(--text);font-size:18px}
+  .sum-pct{font-size:12px;color:var(--muted)}
+
+  .seg-bar{position:relative;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:10px}
+  .month-toggle{background:transparent;border:none;cursor:pointer;font-family:var(--font-head);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:inherit;display:flex;align-items:center;gap:5px}
+  .btn-export{width:100%;margin-top:12px;padding:12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--font-head);font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+  .btn-export:active{background:var(--surface2)}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:50px 20px}
+  .alltime-header{border-top:1px solid var(--border);padding-top:16px;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .mode-hint{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="hdr-sub">Kinetic Custom Trailers</div>
+    <div class="hdr-title">🛻 Ranger Raptor</div>
+    <div class="hdr-loc">Waco, TX — Mileage Log</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('log')" id="tab-log">Trip Log</button>
+    <button class="tab" onclick="showTab('summary')" id="tab-summary">Summary</button>
+  </div>
+  <div class="scroll" id="scroll-area">
+    <div id="view-log"></div>
+    <div id="view-summary" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'raptor-mileage-v3';
+const PURPOSES = [
+  { label:'Business – Client Visit', type:'business' },
+  { label:'Business – Jobsite',      type:'business' },
+  { label:'Business – Air Travel',   type:'business' },
+  { label:'Business – Other',        type:'business' },
+];
+const MODE_ODOM  = 'odom';
+const MODE_MILES = 'miles';
+const MODE_WEEK  = 'week';
+
+let trips=[], deleteConfirm=null, expandedMonths=new Set();
+let savedFlash=false, currentTab='log', entryMode=MODE_ODOM, lastOdomEnd='';
+let odomCurrent = '';
+
+function loadTrips(){
+  try{
+    const r=localStorage.getItem(STORAGE_KEY);
+    trips=r?JSON.parse(r):[];
+    if(trips.length){const s=[...trips].sort((a,b)=>b.date.localeCompare(a.date));lastOdomEnd=String(s[0].odomEnd||'');}
+    odomCurrent = localStorage.getItem(STORAGE_KEY+'_odom') || '';
+  }catch(e){trips=[];}
+}
+function saveTrips(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(trips));
+}
+function saveOdom(){
+  localStorage.setItem(STORAGE_KEY+'_odom', odomCurrent);
+}
+function today(){return new Date().toISOString().slice(0,10);}
+function fmt(n){return Number(n).toLocaleString();}
+function currentMonthKey(){return today().slice(0,7);}
+function getMonthKey(d){return d?d.slice(0,7):'';}
+function monthLabel(mk){return new Date(mk+'-02').toLocaleString('default',{month:'long',year:'numeric'});}
+function groupByMonth(arr){const g={};arr.forEach(t=>{const mk=getMonthKey(t.date);if(!g[mk])g[mk]=[];g[mk].push(t);});return g;}
+function sortedMonths(g){return Object.keys(g).sort((a,b)=>b.localeCompare(a));}
+
+/* ---- RENDER LOG ---- */
+function renderLog(){
+  const el=document.getElementById('view-log');
+  const pOpts=PURPOSES.map(p=>`<option value="${p.label}">${p.label}</option>`).join('');
+  let form=`<div class="card"><div class="card-title">+ New Entry</div>
+    <div class="mode-toggle">
+      <button class="mode-btn ${entryMode===MODE_ODOM?'active':''}"  onclick="setMode('${MODE_ODOM}')">Odometer</button>
+      <button class="mode-btn ${entryMode===MODE_MILES?'active':''}" onclick="setMode('${MODE_MILES}')">Miles</button>
+      <button class="mode-btn ${entryMode===MODE_WEEK?'active':''}"  onclick="setMode('${MODE_WEEK}')">Commute Wk</button>
+    </div>`;
+
+  if(entryMode===MODE_ODOM){
+    form+=`
+      <div class="grid2">
+        <div class="field"><label>Date</label><input type="date" id="f-date" value="${today()}"></div>
+        <div class="field"><label>Purpose</label><select id="f-purpose">${pOpts}</select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Odom Start</label><input type="number" id="f-start" placeholder="12450" value="${lastOdomEnd}" inputmode="numeric"></div>
+        <div class="field"><label>Odom End</label><input type="number" id="f-end" placeholder="12510" inputmode="numeric"></div>
+      </div>
+      <div id="miles-preview"></div>
+      <div class="field"><label>Notes (optional)</label><input type="text" id="f-notes" placeholder="e.g. McGregor site"></div>
+      <button class="btn-save disabled" id="btn-save" onclick="addTripOdom()">Save Trip</button>`;
+  } else if(entryMode===MODE_MILES){
+    form+=`
+      <div class="mode-hint">Enter miles directly — no odometer needed.</div>
+      <div class="grid2">
+        <div class="field"><label>Date</label><input type="date" id="f-date" value="${today()}"></div>
+        <div class="field"><label>Purpose</label><select id="f-purpose">${pOpts}</select></div>
+      </div>
+      <div class="field"><label>Miles</label><input type="number" id="f-miles" placeholder="e.g. 60" inputmode="decimal"></div>
+      <div class="field"><label>Notes (optional)</label><input type="text" id="f-notes" placeholder=""></div>
+      <button class="btn-save disabled" id="btn-save" onclick="addTripMiles()">Save Trip</button>`;
+  } else {
+    form+=`
+      <div class="mode-hint">Weekly commute: enter one-way distance and days worked. App calculates round-trip total.</div>
+      <div class="grid2">
+        <div class="field"><label>Week of</label><input type="date" id="f-date" value="${today()}"></div>
+        <div class="field"><label>Days Worked</label><input type="number" id="f-days" placeholder="5" min="1" max="7" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label>One-Way Distance (mi)</label><input type="number" id="f-oneway" placeholder="e.g. 6" inputmode="decimal"></div>
+      <div id="miles-preview"></div>
+      <div class="field"><label>Notes (optional)</label><input type="text" id="f-notes" placeholder=""></div>
+      <button class="btn-save disabled" id="btn-save" onclick="addTripWeek()">Save Week</button>`;
+  }
+  form+=`</div>`;
+
+  // Trip list
+  const byMonth=groupByMonth(trips);
+  const months=sortedMonths(byMonth);
+  let list='';
+  months.forEach(mk=>{
+    const isCur=mk===currentMonthKey();
+    list+=`<div class="month-label ${isCur?'current':''}">${monthLabel(mk)}</div>`;
+    byMonth[mk].forEach(t=>{
+      const isDel=deleteConfirm===t.id;
+      const meta=[t.date];
+      if(t.odomStart&&t.odomEnd) meta.push(`${fmt(t.odomStart)}→${fmt(t.odomEnd)}`);
+      if(t.entryMode===MODE_WEEK) meta.push(`${t.days}d × ${t.oneway}mi r/t`);
+      if(t.notes) meta.push(t.notes);
+      list+=`<div class="trip-item ${t.purposeType}">
+        <div class="trip-info">
+          <div class="trip-purpose ${t.purposeType}">${t.purpose}</div>
+          <div class="trip-meta">${meta.join(' · ')}</div>
+        </div>
+        <div class="trip-miles">${fmt(t.miles)}</div>
+        ${isDel
+          ?`<button class="btn-del confirm" onclick="confirmDelete(${t.id})">Del?</button><button class="btn-del" onclick="cancelDelete()" style="margin-left:4px">✕</button>`
+          :`<button class="btn-del" onclick="startDelete(${t.id})">🗑</button>`}
+      </div>`;
+    });
+  });
+  if(!trips.length) list=`<div class="empty">No entries yet.<br>Add your first trip above.</div>`;
+  const exportBtn=trips.length?`<button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>`:'';
+
+  el.innerHTML=form+list+exportBtn;
+
+  // Wire inputs
+  if(entryMode===MODE_ODOM){
+    document.getElementById('f-start').addEventListener('input',previewOdom);
+    document.getElementById('f-end').addEventListener('input',previewOdom);
+    previewOdom();
+  } else if(entryMode===MODE_MILES){
+    document.getElementById('f-miles').addEventListener('input',previewMiles);
+    previewMiles();
+  } else {
+    document.getElementById('f-days').addEventListener('input',previewWeek);
+    document.getElementById('f-oneway').addEventListener('input',previewWeek);
+    previewWeek();
+  }
+}
+
+function setMode(m){entryMode=m;renderLog();}
+
+/* ---- PREVIEWS ---- */
+function previewOdom(){
+  const s=parseFloat(document.getElementById('f-start')?.value);
+  const e=parseFloat(document.getElementById('f-end')?.value);
+  const pv=document.getElementById('miles-preview');
+  const btn=document.getElementById('btn-save');
+  if(!pv||!btn) return;
+  if(s&&e){
+    const m=e-s;
+    if(m>0){
+      pv.innerHTML=`<div class="preview-row valid">= ${fmt(m)} miles</div>`;
+      btn.className=savedFlash?'btn-save saved':'btn-save ready';
+      btn.textContent=savedFlash?'✓ Saved!':'Save Trip';
+    } else {
+      pv.innerHTML=`<div class="preview-row invalid">⚠ End must be greater than start</div>`;
+      btn.className='btn-save disabled'; btn.textContent='Save Trip';
+    }
+  } else { pv.innerHTML=''; btn.className='btn-save disabled'; btn.textContent='Save Trip'; }
+}
+
+function previewMiles(){
+  const m=parseFloat(document.getElementById('f-miles')?.value);
+  const btn=document.getElementById('btn-save');
+  if(!btn) return;
+  btn.className=(m>0)?(savedFlash?'btn-save saved':'btn-save ready'):'btn-save disabled';
+  btn.textContent=(m>0)?(savedFlash?'✓ Saved!':'Save Trip'):'Save Trip';
+}
+
+function previewWeek(){
+  const d=parseFloat(document.getElementById('f-days')?.value);
+  const o=parseFloat(document.getElementById('f-oneway')?.value);
+  const pv=document.getElementById('miles-preview');
+  const btn=document.getElementById('btn-save');
+  if(!pv||!btn) return;
+  if(d>0&&o>0){
+    const total=d*o*2;
+    pv.innerHTML=`<div class="preview-row valid">${d} days × ${o} mi × 2 = ${fmt(total)} miles</div>`;
+    btn.className=savedFlash?'btn-save saved':'btn-save ready';
+    btn.textContent=savedFlash?'✓ Saved!':'Save Week';
+  } else { pv.innerHTML=''; btn.className='btn-save disabled'; btn.textContent='Save Week'; }
+}
+
+/* ---- ADD ---- */
+function flash(){savedFlash=true;setTimeout(()=>{savedFlash=false;},1500);}
+function pushTrip(t){
+  trips.unshift(t);
+  trips.sort((a,b)=>b.date.localeCompare(a.date));
+  saveTrips(); flash(); renderLog();
+  document.getElementById('scroll-area').scrollTo(0,0);
+}
+
+function addTripOdom(){
+  const date=document.getElementById('f-date').value;
+  const s=parseFloat(document.getElementById('f-start').value);
+  const e=parseFloat(document.getElementById('f-end').value);
+  const purpose=document.getElementById('f-purpose').value;
+  const notes=document.getElementById('f-notes').value.trim();
+  const miles=e-s;
+  if(!date||!s||!e||miles<=0) return;
+  lastOdomEnd=String(e);
+  pushTrip({id:Date.now(),date,odomStart:s,odomEnd:e,miles,purpose,purposeType:PURPOSES.find(p=>p.label===purpose)?.type||'business',notes,entryMode:MODE_ODOM});
+}
+
+function addTripMiles(){
+  const date=document.getElementById('f-date').value;
+  const miles=parseFloat(document.getElementById('f-miles').value);
+  const purpose=document.getElementById('f-purpose').value;
+  const notes=document.getElementById('f-notes').value.trim();
+  if(!date||!(miles>0)) return;
+  pushTrip({id:Date.now(),date,miles,purpose,purposeType:PURPOSES.find(p=>p.label===purpose)?.type||'business',notes,entryMode:MODE_MILES});
+}
+
+function addTripWeek(){
+  const date=document.getElementById('f-date').value;
+  const days=parseFloat(document.getElementById('f-days').value);
+  const oneway=parseFloat(document.getElementById('f-oneway').value);
+  const notes=document.getElementById('f-notes').value.trim();
+  if(!date||!(days>0)||!(oneway>0)) return;
+  const miles=days*oneway*2;
+  pushTrip({id:Date.now(),date,days,oneway,miles,purpose:'Commute – Weekly (Waco)',purposeType:'commute',notes,entryMode:MODE_WEEK});
+}
+
+function startDelete(id){deleteConfirm=id;renderLog();}
+function cancelDelete(){deleteConfirm=null;renderLog();}
+function confirmDelete(id){trips=trips.filter(t=>t.id!==id);saveTrips();deleteConfirm=null;renderLog();}
+
+/* ---- RENDER SUMMARY ---- */
+function trackedMiles(arr){
+  const b=arr.filter(t=>t.purposeType==='business').reduce((s,t)=>s+t.miles,0);
+  const c=arr.filter(t=>t.purposeType==='commute').reduce((s,t)=>s+t.miles,0);
+  return {b, c, ded:b+c};
+}
+
+function irsStatus(dedMiles, totalMiles){
+  if(!totalMiles || totalMiles <= dedMiles) return null; // can't calc yet
+  const persMiles = totalMiles - dedMiles;
+  const persPct = Math.round(persMiles / totalMiles * 100);
+  const dedPct = 100 - persPct;
+  let cls, icon, msg;
+  if(persPct >= 50){
+    cls='danger'; icon='🚨';
+    msg=`Personal use ${persPct}% (${fmt(persMiles)} mi) — exceeds 50% IRS threshold. Deduction at risk.`;
+  } else if(persPct >= 35){
+    cls='warn'; icon='⚠️';
+    msg=`Personal use ${persPct}% (${fmt(persMiles)} mi) — approaching 50% threshold. Monitor closely.`;
+  } else {
+    cls='ok'; icon='✅';
+    msg=`Deductible ${dedPct}% · Personal ${persPct}% (${fmt(persMiles)} mi) — within IRS limits.`;
+  }
+  return {cls, icon, msg, persMiles, persPct, dedPct};
+}
+
+function renderSummary(){
+  const el=document.getElementById('view-summary');
+  if(!trips.length){el.innerHTML='<div class="empty">No data yet.<br>Log some trips first.</div>';return;}
+
+  const allDed=trackedMiles(trips);
+  const odomVal=parseFloat(odomCurrent)||0;
+
+  let resultsHTML='';
+
+  if(odomVal>0){
+    const status=irsStatus(allDed.ded,odomVal);
+    if(status){
+      const persMiles=Math.max(0,odomVal-allDed.ded);
+      const bPct=Math.round(allDed.b/odomVal*100);
+      const cPct=Math.round(allDed.c/odomVal*100);
+      const persPct=100-Math.round(allDed.ded/odomVal*100);
+      const dedW=allDed.b/odomVal*100;
+      const dedTotalW=allDed.ded/odomVal*100;
+      resultsHTML+=`
+        <div class="irs-banner ${status.cls}" style="margin-bottom:14px">
+          <div class="irs-icon">${status.icon}</div><div>${status.msg}</div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="seg-bar" style="height:10px;border-radius:6px">
+            <div style="position:absolute;left:0;top:0;height:100%;width:${dedTotalW}%;background:#1a3530"></div>
+            <div style="position:absolute;left:0;top:0;height:100%;width:${dedW}%;background:var(--green);border-radius:6px 0 0 6px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--muted);font-family:var(--font-mono)">
+            <span style="color:var(--green)">BIZ ${bPct}%</span>
+            <span style="color:#4ecfa0">COMMUTE ${cPct}%</span>
+            <span>PERSONAL ${persPct}%</span>
+          </div>
+        </div>
+        <div class="summary-grid">
+          <div class="sum-chip business">
+            <div class="sum-label">Business</div>
+            <div class="sum-miles">${fmt(allDed.b)}</div>
+            <div class="sum-pct">${bPct}% of total</div>
+          </div>
+          <div class="sum-chip commute">
+            <div class="sum-label">Commute ✓</div>
+            <div class="sum-miles">${fmt(allDed.c)}</div>
+            <div class="sum-pct">${cPct}% of total</div>
+          </div>
+          <div class="sum-chip personal">
+            <div class="sum-label">Personal (calc)</div>
+            <div class="sum-miles">${fmt(persMiles)}</div>
+            <div class="sum-pct">${persPct}% of total</div>
+          </div>
+          <div class="sum-chip total">
+            <div><div class="sum-label">Total</div><div class="sum-pct">from odometer</div></div>
+            <div class="sum-miles">${fmt(odomVal)} mi</div>
+          </div>
+        </div>`;
+    }
+  } else {
+    resultsHTML+=`<div style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:0 2px">Enter odometer above to calculate personal miles and IRS status.</div>`;
+  }
+
+  // Monthly breakdown
+  const byMonth=groupByMonth(trips);
+  const months=sortedMonths(byMonth);
+  const cmk=currentMonthKey();
+  months.forEach(mk=>{
+    const isCur=mk===cmk;
+    const isOpen=isCur||expandedMonths.has(mk);
+    resultsHTML+=`<div class="month-label ${isCur?'current':''}">
+      <button class="month-toggle" style="color:inherit" onclick="toggleMonth('${mk}')">${monthLabel(mk)} ${isOpen?'▲':'▼'}</button>
+    </div>`;
+    if(isOpen) resultsHTML+=monthBlock(byMonth[mk]);
+  });
+
+  resultsHTML+=`<button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>`;
+
+  // Write everything in one shot — odometer card + all results
+  el.innerHTML=`
+    <div class="card">
+      <div class="card-title">Current Odometer</div>
+      <div class="field" style="margin-bottom:0">
+        <label>Enter current odometer reading (mi)</label>
+        <input type="number" id="odom-input" value="${odomCurrent}" placeholder="e.g. 14250" inputmode="numeric"
+          onchange="updateOdom(this.value)" onblur="updateOdom(this.value)">
+      </div>
+    </div>
+    ${resultsHTML}`;
+}
+
+function renderSummaryResults(){
+  renderSummary();
+}
+
+function monthBlock(arr){
+  const {b,c,ded}=trackedMiles(arr);
+  const bCnt=arr.filter(t=>t.purposeType==='business').length;
+  const cCnt=arr.filter(t=>t.purposeType==='commute').length;
+  const dedW=ded>0?(b/ded*100):0;
+  return `
+    <div class="seg-bar">
+      <div style="position:absolute;left:0;top:0;height:100%;width:100%;background:#1a3530"></div>
+      <div style="position:absolute;left:0;top:0;height:100%;width:${dedW}%;background:var(--green)"></div>
+    </div>
+    <div class="summary-grid">
+      <div class="sum-chip business">
+        <div class="sum-label">Business</div>
+        <div class="sum-miles">${fmt(b)}</div>
+        <div class="sum-pct">${bCnt} entries</div>
+      </div>
+      <div class="sum-chip commute">
+        <div class="sum-label">Commute ✓</div>
+        <div class="sum-miles">${fmt(c)}</div>
+        <div class="sum-pct">${cCnt} entries</div>
+      </div>
+      <div class="sum-chip total" style="grid-column:1/-1">
+        <div><div class="sum-label">Deductible Total</div></div>
+        <div class="sum-miles">${fmt(ded)} mi</div>
+      </div>
+    </div>`;
+}
+
+function updateOdom(val){
+  odomCurrent=val;
+  saveOdom();
+  renderSummary();
+}
+
+function toggleMonth(mk){if(expandedMonths.has(mk))expandedMonths.delete(mk);else expandedMonths.add(mk);renderSummary();}
+
+/* ---- EXPORT ---- */
+function exportCSV(){
+  const header='Date,Miles,Odometer Start,Odometer End,Purpose,Type,Entry Mode,Notes';
+  const rows=[...trips].sort((a,b)=>a.date.localeCompare(b.date))
+    .map(t=>`${t.date},${t.miles},${t.odomStart||''},${t.odomEnd||''},"${t.purpose}",${t.purposeType},${t.entryMode},"${t.notes||''}"`);
+  const blob=new Blob([[header,...rows].join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`raptor-mileage-${today()}.csv`;a.click();
+}
+
+/* ---- TABS ---- */
+function showTab(tab){
+  currentTab=tab;
+  document.getElementById('view-log').style.display=tab==='log'?'':'none';
+  document.getElementById('view-summary').style.display=tab==='summary'?'':'none';
+  document.getElementById('tab-log').className='tab'+(tab==='log'?' active':'');
+  document.getElementById('tab-summary').className='tab'+(tab==='summary'?' active':'');
+  if(tab==='summary') renderSummary();
+  document.getElementById('scroll-area').scrollTo(0,0);
+}
+
+loadTrips();
+expandedMonths.add(currentMonthKey());
+renderLog();
+</script>
+</body>
+</html>
